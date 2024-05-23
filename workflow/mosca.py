@@ -9,7 +9,7 @@ import yaml
 import pandas as pd
 import re
 
-__version__ = '2.3.0'
+__version__ = '2.3.1'
 
 parser = argparse.ArgumentParser(description="MOSCA's main script")
 parser.add_argument("-s", "--snakefile", default=f'{sys.path[0]}/Snakefile', help="Path to Snakefile")
@@ -53,14 +53,17 @@ def validate_exps(exps_data):
     reserved_words = [
         'if', 'else', 'repeat', 'while', 'function', 'for', 'in', 'next', 'break', 'TRUE', 'FALSE', 'NULL', 'Inf',
         'NaN', 'NA', 'NA_integer_', 'NA_real_', 'NA_complex_', 'NA_character_']
-    good_pattern = re.compile(r'^(?!^\d)(?!^\.\d)([\w.]+)$')    # don't start with a number, nor a decimal (dot followed by number)
+    good_pattern = re.compile(r'^(?!^\d)(?!^\.\d)([\w.]+)$')    # don't start with a number, nor a decimal (dot followed by number), and have no special characters (-, +, *, /, etc.)
+    if exps['Name'].duplicated().any():
+        sys.exit(f'ERROR: Multiple rows with same "Name" value: {",".join(exps["Name"].duplicated().any())}.')
     for name in exps['Name']:
         if not name:        # if name is None, or empty string, MOSCA should be able to build one that is fine
             continue
         if name in reserved_words:
             sys.exit(f'INVALID "NAME" in "experiments": {name} is a reserved R word.')
         if not bool(good_pattern.match(name)):
-            sys.exit(f'INVALID "NAME" in "experiments": {name} starts with a number or has a special character.')
+            sys.exit(f'INVALID "NAME" in "experiments": {name} starts with a number or has a special character.\n'
+                     f'Please use only letters, numbers, dots (.) and underscores (_).')
 
 
 def validate_config(config_data):

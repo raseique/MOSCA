@@ -12,6 +12,7 @@ from mosca_tools import run_command
 import pandas as pd
 import shutil
 import pathlib
+import snakemake
 
 
 class Binner:
@@ -74,7 +75,7 @@ class Binner:
             return True
         if lq_bins1 < lq_bins2:
             return False
-        return True
+        return False
 
     def iterative_binning(self, contigs, output, threads=8, reads=None, reads2=None, markerset='40'):
         best_bin = 10

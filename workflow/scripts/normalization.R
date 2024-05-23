@@ -28,13 +28,14 @@ normalize_gene_expression <- function(df, output_file, norm_method, imput_method
       imputed <- llsImpute(t(norm), correlation = "pearson", allVariables = allVariables)
       df <- t(completeObs(imputed))
     } else if (imput_method == "MIN") {
+      print("Imputing missing values with the minimum value.")
       df[is.na(df)] <- min(norm, na.rm=TRUE)
     }
   } else {
     stop("Error: normalization method must be either TMM, RLE, or VSN")
   }
-  print('Writing normalized results.')
-  write.table(df, file = output_file, sep = "\t", row.names = TRUE, col.names = TRUE)
+  print('Writing normalized results.')    # but first convert back to counts (normalized)
+  write.table(2^df, file = output_file, sep = "\t", row.names = TRUE, col.names = TRUE, quote=FALSE)
 }
 
 print("Reading data to normalize.")
