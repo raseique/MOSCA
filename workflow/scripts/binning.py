@@ -13,6 +13,7 @@ import pandas as pd
 import shutil
 import pathlib
 import snakemake
+import os
 
 
 class Binner:
@@ -96,8 +97,8 @@ class Binner:
                 else:
                     shutil.rmtree(f'{output}/{prob_threshold}')
                     print(f'Removed files for probability threshold: {prob_threshold} %')
-
-        shutil.copyfile(f'{output}/{best_bin}/checkm.tsv', f'{output}/checkm.tsv')
+        for file_name in os.listdir(f'{output}/{best_bin}'):
+            shutil.move(os.path.join(f'{output}/{best_bin}', file_name), output)
         print(f'Best probability threshold: {best_bin} %')
         with open(f'{output}/result.txt', 'w') as f:
             f.write(f'Best probability threshold: {best_bin}')

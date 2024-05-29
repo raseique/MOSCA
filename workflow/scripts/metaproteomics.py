@@ -16,6 +16,7 @@ from tqdm import tqdm
 import requests
 from time import sleep
 from mosca_tools import run_command, run_pipe_command, multiprocess_fun
+import snakemake
 
 
 class MetaproteomicsAnalyser:
@@ -37,9 +38,9 @@ class MetaproteomicsAnalyser:
                 sleep(10)
         return res.content.decode('utf8')
 
-    def add_reference_proteomes(self, upimapi_res, output):
+    def add_reference_proteomes(self, upimapi_res, output, tax_lvl='genus'):
         taxids = pd.read_csv(upimapi_res, sep='\t', low_memory=False)[
-            'Taxonomic lineage IDs (SPECIES)'].dropna().unique().astype(int).tolist()
+            f'Taxonomic lineage IDs ({tax_lvl.upper()})'].dropna().unique().astype(int).tolist()
         with open(output, 'w') as f:
             for taxid in tqdm(taxids, desc=f'Retrieving reference proteomes for {len(taxids)} taxa from UniProt'):
                 try:
@@ -49,20 +50,22 @@ class MetaproteomicsAnalyser:
 
     def database_generation(
             self, mg_orfs, output, upimapi_res, contaminants_database=None, protease='Trypsin', threads=1,
-            add_reference_proteomes=True):
+            add_reference_proteomes=True, tax_lvl='genus'):
         """
         Build database from MG analysis
         :param mg_orfs:
         :param output:
-        :param mpa_result:
+        :param upimapi_res:
         :param contaminants_database:
         :param protease:
         :param threads:
+        :param add_reference_proteomes:
+        :param tax_lvl:
         """
         print(f'Generating new database in {output}')
         # Get reference proteomes for the various taxa
         if add_reference_proteomes:
-            self.add_reference_proteomes(upimapi_res, f'{output}/ref_proteomes.fasta')
+            self.add_reference_proteomes(upimapi_res, f'{output}/ref_proteomes.fasta', tax_lvl=tax_lvl)
         # Add protease
         if protease == 'Trypsin':
             if not os.path.isfile(f'{output}/P00761.fasta'):
@@ -228,16 +231,13 @@ class MetaproteomicsAnalyser:
         except:
             print('Producing Peptide-Shaker result failed! Maybe no identifications were obtained?')
 
-    def generate_reports(self, peptideshaker_output, reports_folder, reports=["10"], max_memory=40960):
+    def generate_reports(self, peptideshaker_output, reports_folder, reports=("10"), max_memory=40960):
         """
-        input:
-            peptideshaker_output: peptideshaker output filename
-            reports_folder: folder to where output reports
-            reports_list: list of INTEGERS from 0 to 11 corresponding to the reports
-            to output
-        output:
-            if it doesn't exist, "reports_folder" will be created
-            reports will be outputed to "reports_folder"
+        Generates reports from output of PeptideShaker
+        :param peptideshaker_output: peptideshaker output filename
+        :param reports_folder: folder to where output reports
+        :param reports: list of INTEGERS from 0 to 11 corresponding to the reports to output
+        :param max_memory: maximum memory to use
         """
         print(f'Created {reports_folder}')
         Path(reports_folder).mkdir(parents=True, exist_ok=True)  # creates folder for reports
@@ -261,7 +261,7 @@ class MetaproteomicsAnalyser:
         return result
 
     def compomics_run(
-            self, database, output, spectra_folders, name, params, threads=1, max_memory=4096, reports=['10']):
+            self, database, output, spectra_folders, name, params, threads=1, max_memory=4096, reports=('10')):
         """
         Run compomics workflow on the given spectra folders
         :param params:
@@ -305,7 +305,8 @@ class MetaproteomicsAnalyser:
         self.database_generation(
             snakemake.params.mg_db, snakemake.params.output, snakemake.params.up_res,
             contaminants_database=snakemake.params.contaminants_database,
-            protease=snakemake.params.protease, add_reference_proteomes=snakemake.params.add_reference_proteomes)
+            protease=snakemake.params.protease, add_reference_proteomes=snakemake.params.add_reference_proteomes,
+            tax_lvl=snakemake.params.taxa_lvl)
         self.create_decoy_database(f'{snakemake.params.output}/1st_search_database.fasta')
         self.split_database(
             f'{snakemake.params.output}/1st_search_database_concatenated_target_decoy.fasta', n_proteins=5000000)
@@ -314,8 +315,11 @@ class MetaproteomicsAnalyser:
         except:
             print('An illegal reflective access operation has occurred. But MOSCA can handle it.')
 
-        # 2nd database construction
-        proteins_for_second_search = []
+        # 2nd database construction - peak-pick spectra and get proteins from taxa with at least one identification
+        up_res = pd.read_csv(f'real_mgmp_output/Annotation/{sample}/UPIMAPI_results.tsv', sep='\t', low_memory=False)
+
+        proteins_identified = []
+        tax_lvl = snakemake.params.tax_level
         for i in range(len(snakemake.params.names)):
             out = f'{snakemake.params.output}/{snakemake.params.names[i]}'
             for foldername in ['spectra', '2nd_search']:
@@ -329,16 +333,19 @@ class MetaproteomicsAnalyser:
                 self.compomics_run(
                     database, f'{out}_{j}/1st_search', f'{out}/spectra', snakemake.params.names[i],
                     f'{snakemake.params.output}/1st_params.par', threads=snakemake.threads,
-                    max_memory=snakemake.params.max_memory, reports=['4'])
+                    max_memory=snakemake.params.max_memory, reports=('4'))
                 df = pd.read_csv(
                     f'{out}_{j}/1st_search/reports/{snakemake.params.names[i]}_'
                     f'Default_PSM_Report_with_non-validated_matches.txt',
                     sep='\t', index_col=0)
                 for protein_group in df['Protein(s)'].str.split(','):
-                    proteins_for_second_search += protein_group
+                    proteins_identified += protein_group
                 j += 1
+        identified_taxa = up_res[up_res[f'Taxonomic lineage ({tax_lvl})'].notnull() & up_res['qseqid'].isin(
+            proteins_identified)][f'Taxonomic lineage ({tax_lvl})'].unique()
         with open(f'{snakemake.params.output}/2nd_search_proteins.txt', 'w') as f:
-            f.write('\n'.join(set(proteins_for_second_search)))
+            # write proteins corresponding to identified taxa
+            f.write('\n'.join(set(up_res[up_res[f'Taxonomic lineage ({tax_lvl})'].isin(identified_taxa)]['qseqid'])))
         run_command(
             f'seqkit grep -f {snakemake.params.output}/2nd_search_proteins.txt -o '
             f'{snakemake.params.output}/2nd_search_database.fasta {snakemake.params.output}/1st_search_database.fasta')
