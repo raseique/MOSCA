@@ -96,6 +96,25 @@ jobs:
           touch MOSCARDO/output_rules/Assembly/sample/contigs.fasta MOSCARDO/output_rules/Assembly/sample/scaffolds.fasta;
           snakemake --cores all -R --until binning -s MOSCA/workflow/Snakefile --configfile MOSCARDO/configs/rules_config.json --use-conda --ignore-incomplete"
 
+  mg-workflow:
+    runs-on: ubuntu-latest
+    needs: build
+    if: false  # Blocked for now, since GHA don't provide enough disk space to run this step
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: mosca
+          path: /tmp
+      - name: Load Docker image
+        run: |
+          docker load --input /tmp/mosca.tar
+          docker image ls -a
+      - name: Create named volume
+        run: docker volume create named_volume
+      - name: MGMP workflow
+        run: docker run mosca /bin/bash -c "rm -r MOSCARDO/output_rules; mosca -c MOSCARDO/configs/mg_config.json"
+
   mgmt-workflow:
     runs-on: ubuntu-latest
     needs: build

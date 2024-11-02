@@ -90,7 +90,7 @@ dependencies:
   - python_abi=3.11=3_cp311
   - pytz=2023.3=pyhd8ed1ab_0
   - readline=8.2=h8228510_1
-  - recognizer=1.10
+  - recognizer=1.11
   - requests=2.28.2=pyhd8ed1ab_1
   - setuptools=67.7.1=pyhd8ed1ab_0
   - six=1.16.0=pyh6c4a22f_0

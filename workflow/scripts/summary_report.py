@@ -70,6 +70,7 @@ class Reporter:
     def info_from_assembly(self, out_dir):
         timed_message('Processing results of: assembly.')
         reports = glob(f'{out_dir}/Assembly/*/quality_control/report.tsv')
+        print(self.sample2name)
         for file in reports:
             timed_message(f'Obtaining info from: {"/".join(file.split("/")[-4:])}')
             sample = file.split('/')[-3]
@@ -152,17 +153,19 @@ class Reporter:
         write_versions_report(f'{snakemake.params.output}/MOSCA_Versions_Report.xlsx')
         exps = pd.read_csv(f'{snakemake.params.output}/exps.tsv', sep='\t')
         for sample in exps['Sample'].unique():
-            self.sample2name = {sample: exps[exps['Sample'] == sample]['Name'].tolist()}
+            self.sample2name = {**self.sample2name, **{sample: exps[exps['Sample'] == sample]['Name'].tolist()}}
         self.info_from_preprocessing(snakemake.params.output)
         self.info_from_assembly(snakemake.params.output)
         self.info_from_binning(snakemake.params.output)
         self.info_from_annotation(snakemake.params.output)
         self.info_from_quantification(snakemake.params.output)
-        self.info_from_differential_expression(
-            snakemake.params.output, cutoff=snakemake.params.cutoff, mp='protein' in exps['Data type'].tolist())
+        if snakemake.params.has_expression_data:
+            self.info_from_differential_expression(
+                snakemake.params.output, cutoff=snakemake.params.cutoff, mp='protein' in exps['Data type'].tolist())
         self.report[['Initial reads', 'Qual trim params', 'Final reads', '# genes', '# annotations (UPIMAPI)',
-                     '# annotations (reCOGnizer)', 'Reads aligned (%)', '# differentially expressed'
-                     ]].to_csv(f'{snakemake.params.output}/MOSCA_Summary_Report.tsv', sep='\t')
+                     '# annotations (reCOGnizer)', 'Reads aligned (%)'] + ([
+                        '# differentially expressed'] if snakemake.params.has_expression_data else [])
+                     ].to_csv(f'{snakemake.params.output}/MOSCA_Summary_Report.tsv', sep='\t')
         self.zip_outputs(snakemake.params.output)
 
 

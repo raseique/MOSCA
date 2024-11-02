@@ -5,7 +5,8 @@
 normalize_gene_expression <- function(df, output_file, norm_method, imput_method="LLS") {
   # TMM or RLE normalization -> for RNA-Seq
   if (norm_method == "TMM" || norm_method == "RLE") {
-    print(paste("Performing", if (norm_method == "TMM") {"Trimmed Mean of M-values"} else {"Relative Log Expression"}, "normalization.", sep=' '))
+    print(paste("Performing", if (norm_method == "TMM") {"Trimmed Mean of M-values"} else {"Relative Log Expression"},
+                "normalization.", sep=' '))
     library("edgeR")
     df[is.na(df)] <- 0
     factors <- calcNormFactors(df, method=norm_method)
@@ -25,7 +26,7 @@ normalize_gene_expression <- function(df, output_file, norm_method, imput_method
       if (sum(complete.cases(norm)) / nrow(norm) < 0.5) {
         allVariables <- TRUE
       }
-      imputed <- llsImpute(t(norm), correlation = "pearson", allVariables = allVariables)
+      imputed <- llsImpute(t(norm), correlation="pearson", allVariables=allVariables)
       df <- t(completeObs(imputed))
     } else if (imput_method == "MIN") {
       print("Imputing missing values with the minimum value.")
@@ -35,7 +36,7 @@ normalize_gene_expression <- function(df, output_file, norm_method, imput_method
     stop("Error: normalization method must be either TMM, RLE, or VSN")
   }
   print('Writing normalized results.')    # but first convert back to counts (normalized)
-  write.table(2^df, file = output_file, sep = "\t", row.names = TRUE, col.names = TRUE, quote=FALSE)
+  write.table(2^df, file=output_file, sep="\t", row.names=TRUE, col.names=TRUE, quote=FALSE)
 }
 
 print("Reading data to normalize.")

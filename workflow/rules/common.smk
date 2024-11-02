@@ -37,6 +37,7 @@ if len(mg_exps) == 0 and len(mt_exps) != 0:
     mg_exps = mt_exps
 not_mp_exps = EXPS[EXPS["Data type"] != 'protein']
 not_mg_exps = EXPS[EXPS["Data type"] != 'dna']
+has_expression_data = len(not_mg_exps) > 0
 
 
 def human_time(seconds):

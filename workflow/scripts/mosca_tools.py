@@ -9,14 +9,12 @@ Jun 2017
 
 from glob import glob
 from multiprocessing import Pool
-from pathlib import Path
 import numpy as np
 import os
 import pandas as pd
 from subprocess import run, Popen, PIPE, check_output
 import sys
 import time
-from tqdm import tqdm
 
 blast_cols = ['qseqid', 'sseqid', 'pident', 'length', 'mismatch', 'gapopen', 'qstart', 'qend', 'sstart', 'send',
               'evalue', 'bitscore']

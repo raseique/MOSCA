@@ -53,14 +53,13 @@
     "UniPathway"
   ],
   "recognizer_databases": [
-    "CDD",
+    "NCBI_Curated",
     "Pfam",
-    "NCBIfam",
-    "Protein_Clusters",
-    "Smart",
-    "TIGRFAM",
+    "SMART",
+    "KOG",
     "COG",
-    "KOG"
+    "PRK",
+    "TIGR"
   ],
   "normalization_method": "TMM",
   "minimum_differential_expression": 2,
@@ -69,6 +68,7 @@
   "use_crap": true,
   "proteomics_contaminants_database": "crap.fasta",
   "reference_proteomes_taxa_level": "SPECIES",
+  "mp_database_taxa_level": "GENUS",
   "protease": "Trypsin",
   "protease_file": "",
   "significance_threshold": 0.05,
