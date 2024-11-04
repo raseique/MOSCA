@@ -49,6 +49,13 @@ def save_config(config_data, filename, output_format):
 
 
 def validate_exps(exps_data):
+    def set_name(files, data_type):
+        filename = files.split('/')[-1]
+        if data_type == 'protein':
+            return filename  # which is the foldername (e.g. input/mp1 -> mp1)
+        if ',' in files:
+            return filename.split(',')[0].split('_R')[0]
+        return filename.split('.fa')[0]
     exps = pd.DataFrame(exps_data)
     reserved_words = [
         'if', 'else', 'repeat', 'while', 'function', 'for', 'in', 'next', 'break', 'TRUE', 'FALSE', 'NULL', 'Inf',
@@ -62,6 +69,12 @@ def validate_exps(exps_data):
         if not bool(good_pattern.match(name)):
             sys.exit(f'INVALID "NAME" in "experiments": {name} starts with a number or has a special character.\n'
                      f'Please use only letters, numbers, dots (.) and underscores (_).')
+    for i in range(len(exps)):
+        if pd.isnull(exps.iloc[i]['Name']) or exps.iloc[i]['Name'] == '':
+            exps.iloc[i, exps.columns.get_loc('Name')] = set_name(
+                exps.iloc[i]['Files'], exps.iloc[i]['Data type'])
+        # if not config['do_assembly']:
+        #    EXPS.iloc[i]['Sample'] = EXPS.iloc[i]['Name']
     if exps['Name'].duplicated().any():
         sys.exit(f'ERROR: Multiple rows with same "Name" value: {",".join(exps["Name"].duplicated().any())}.')
 

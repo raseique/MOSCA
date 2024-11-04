@@ -10,22 +10,6 @@ validate(config, schema="../schemas/config.schema.yaml")
 
 OUTPUT = config["output"]
 EXPS = pd.DataFrame(config["experiments"])
-
-def set_name(files, data_type):
-    filename = files.split('/')[-1]
-    if data_type == 'protein':
-        return filename         # which is the foldername (e.g. input/mp1 -> mp1)
-    if ',' in files:
-        return filename.split(',')[0].split('_R')[0]
-    return filename.split('.fa')[0]
-
-for i in range(len(EXPS)):
-    if pd.isnull(EXPS.iloc[i]['Name']) or EXPS.iloc[i]['Name'] == '':
-        EXPS.iloc[i, EXPS.columns.get_loc('Name')] = set_name(
-            EXPS.iloc[i]['Files'], EXPS.iloc[i]['Data type'])
-    #if not config['do_assembly']:
-    #    EXPS.iloc[i]['Sample'] = EXPS.iloc[i]['Name']
-
 pathlib.Path(f"{OUTPUT}").mkdir(parents=True, exist_ok=True)
 EXPS.to_csv(f"{OUTPUT}/exps.tsv", sep = '\t', index = False)
 
