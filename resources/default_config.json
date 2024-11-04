@@ -326,5 +326,6 @@
     "02040",
     "04810"
   ],
- "inside_container": true
+  "inside_container": true,
+  "ci_run": false
 }
