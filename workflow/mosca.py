@@ -54,8 +54,6 @@ def validate_exps(exps_data):
         'if', 'else', 'repeat', 'while', 'function', 'for', 'in', 'next', 'break', 'TRUE', 'FALSE', 'NULL', 'Inf',
         'NaN', 'NA', 'NA_integer_', 'NA_real_', 'NA_complex_', 'NA_character_']
     good_pattern = re.compile(r'^(?!^\d)(?!^\.\d)([\w.]+)$')    # don't start with a number, nor a decimal (dot followed by number), and have no special characters (-, +, *, /, etc.)
-    if exps['Name'].duplicated().any():
-        sys.exit(f'ERROR: Multiple rows with same "Name" value: {",".join(exps["Name"].duplicated().any())}.')
     for name in exps['Name']:
         if not name:        # if name is None, or empty string, MOSCA should be able to build one that is fine
             continue
@@ -64,11 +62,24 @@ def validate_exps(exps_data):
         if not bool(good_pattern.match(name)):
             sys.exit(f'INVALID "NAME" in "experiments": {name} starts with a number or has a special character.\n'
                      f'Please use only letters, numbers, dots (.) and underscores (_).')
+    if exps['Name'].duplicated().any():
+        sys.exit(f'ERROR: Multiple rows with same "Name" value: {",".join(exps["Name"].duplicated().any())}.')
 
 
 def validate_config(config_data):
+    valid_values = {
+        "recognizer_databases": ["NCBI_Curated", "Pfam", "SMART", "KOG", "COG", "PRK", "TIGR"],
+        "upimapi_database": ["uniprot", "swissprot", "taxids"]}
     if not config_data['do_assembly'] and config_data['do_binning']:
         sys.exit('ERROR: Can only do binning if assembly is performed.')
+    for parameter, value in valid_values.items():
+        if type(config_data[parameter]) == str:
+            if config_data[parameter] not in value:
+                sys.exit(f'ERROR: Invalid value for "{parameter}": {config_data[parameter]}.')
+        if type(config_data[parameter]) == list:
+            for item in config_data[parameter]:
+                if item not in value:
+                    sys.exit(f'ERROR: Invalid value for "{parameter}": {item}.')
     validate_exps(config["experiments"])
 
 
